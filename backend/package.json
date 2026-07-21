@@ -1,0 +1,16 @@
+{
+  "name": "webhook-receiver-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Multi-tenant webhook receiver: accepts a signing secret per client at runtime and pushes validated events to the frontend over websockets.",
+  "main": "receiver.js",
+  "scripts": {
+    "start": "node receiver.js",
+    "dev": "node --watch receiver.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
