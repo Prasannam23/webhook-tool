@@ -7,33 +7,24 @@ import { Server } from 'socket.io'
 const app = express()
 const httpServer = createServer(app)
 
-// Tighten "origin" to your real frontend URL in production.
+
 const io = new Server(httpServer, {
   cors: { origin: '*' }
 })
 
 app.use(cors())
 
-// Capture the exact raw bytes received, before JSON.parse touches them.
-// The HMAC must be computed over the raw body, not JSON.stringify(req.body),
-// since re-serializing can change key order / whitespace and break the signature.
+.
 app.use(express.json({
   verify: (req, res, buf) => {
     req.rawBody = buf.toString('utf8')
   }
 }))
 
-// --- In-memory, per-client secret store -------------------------------
-// clientId -> secret
-// Swap this Map for Redis/a database if you need it to survive a restart
-// or to run more than one backend instance.
+
 const secrets = new Map()
 
-/**
- * A frontend calls this once with the secret a user typed in.
- * We generate a clientId, remember the secret against it, and hand back
- * a webhook URL scoped to that clientId. Nothing is hardcoded server-side.
- */
+
 app.post('/api/register', (req, res) => {
   const { secret } = req.body || {}
   if (!secret || typeof secret !== 'string' || !secret.trim()) {
@@ -49,7 +40,7 @@ app.post('/api/register', (req, res) => {
   })
 })
 
-/** Optional: rotate the secret for an existing clientId without a new URL. */
+
 app.post('/api/rotate/:clientId', (req, res) => {
   const { clientId } = req.params
   const { secret } = req.body || {}
@@ -65,17 +56,16 @@ app.post('/api/rotate/:clientId', (req, res) => {
   res.json({ ok: true })
 })
 
-/** Optional cleanup so a browser tab can deregister when it's done. */
+
 app.delete('/api/register/:clientId', (req, res) => {
   secrets.delete(req.params.clientId)
   res.json({ ok: true })
 })
 
-/**
- * The actual webhook endpoint. Whoever is sending webhooks posts here,
- * to the URL that included their clientId. We look up which secret
- * belongs to that clientId and validate the signature against it.
- */
+app.get('/health',(req,res)=>{
+  return res.status(200).json({message : 'service is working'})
+})
+ 
 app.post('/webhook/:clientId', (req, res) => {
   const { clientId } = req.params
   const secret = secrets.get(clientId)
@@ -119,7 +109,7 @@ app.post('/webhook/:clientId', (req, res) => {
   console.log('signature valid:', validate)
   console.log('------------------------')
 
-  // Push straight to whichever browser tab registered this clientId.
+  
   io.to(clientId).emit('webhook-event', event)
 
   if (!validate) {
@@ -129,8 +119,7 @@ app.post('/webhook/:clientId', (req, res) => {
 })
 
 io.on('connection', (socket) => {
-  // The frontend joins a room named after its own clientId right after
-  // registering, so events for one user never leak to another.
+  
   socket.on('join', (clientId) => {
     if (typeof clientId === 'string' && secrets.has(clientId)) {
       socket.join(clientId)
